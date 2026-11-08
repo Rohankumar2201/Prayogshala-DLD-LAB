@@ -4,7 +4,7 @@
 
 Built for practising lab experiments before the DLD laboratory external exam. No install, no backend, no dependencies: it is a single `index.html`.
 
-**Live demo:** https://rohankumar2201.github.io/prayogshala/
+**Live demo:** https://rohankumar2201.github.io/Prayogshala-DLD-LAB/
 
 ---
 
@@ -30,7 +30,7 @@ python -m http.server 8000
 # open http://localhost:8000
 ```
 
-There is no `npm install` and no build step.
+
 
 ---
 
@@ -69,30 +69,9 @@ VCC is pin 14 and GND is pin 7 on all of them.
 
 ---
 
-## Example: Half Adder
 
-Uses a **7486** (XOR) for Sum and a **7408** (AND) for Carry.
 
-| Connection | From | To |
-|---|---|---|
-| Power | +5V → + rail, GND → − rail | |
-| 7486 VCC / GND | + rail → pin 14 | − rail → pin 7 |
-| 7408 VCC / GND | + rail → pin 14 | − rail → pin 7 |
-| A | Input D1 | 7486 pin 1 and 7408 pin 1 |
-| B | Input D2 | 7486 pin 2 and 7408 pin 2 |
-| Sum | 7486 pin 3 | Output D2 |
-| Carry | 7408 pin 3 | Output D1 |
 
-Expected result:
-
-| A | B | Sum | Carry |
-|---|---|---|---|
-| 0 | 0 | 0 | 0 |
-| 0 | 1 | 1 | 0 |
-| 1 | 0 | 1 | 0 |
-| 1 | 1 | 0 | 1 |
-
----
 
 ## Troubleshooting
 
@@ -106,43 +85,7 @@ Expected result:
 
 ---
 
-## Roadmap
 
-- [x] **Phase 1:** breadboard, wiring, power, basic gates, switches, LEDs, live simulation
-- [ ] **Phase 2:** NAND/NOR universal gates, half/full adder and subtractor experiments
-- [ ] **Phase 3:** multiplexer, demultiplexer, encoder, decoder, comparator (74151, 74138, 7483)
-- [ ] **Phase 4:** flip-flops, counters, shift registers, pulse generator (7474, 7476)
-- [ ] **Phase 5:** examination mode with automatic circuit evaluation and scoring
 
-ICs not yet implemented are labelled as such in the library.
 
----
-
-## Publish on GitHub Pages
-
-Create an empty repo named `prayogshala` on GitHub, then run these from inside this folder:
-
-```bash
-git init
-git add .
-git commit -m "Prayogshala: Digital Logic Lab"
-git branch -M main
-git remote add origin https://github.com/Rohankumar2201/prayogshala.git
-git push -u origin main
-```
-
-Then in the repo go to **Settings → Pages**, choose **Deploy from a branch**, pick `main` and `/ (root)`, and save. The site goes live in about a minute at `https://rohankumar2201.github.io/prayogshala/`.
-
-To publish later changes:
-
-```bash
-git add .
-git commit -m "Describe the change"
-git push
-```
-
-If GitHub rejects your password, create a personal access token (Settings → Developer settings → Personal access tokens) and use it instead, or sign in with `gh auth login`.
-
----
-
-Made by Rohan Kumar · [GitHub](https://github.com/Rohankumar2201) · [LinkedIn](https://www.linkedin.com/in/rohankumar2201/)
+Made by Rohan Kumar · 
