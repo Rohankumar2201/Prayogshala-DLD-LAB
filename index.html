@@ -1,0 +1,145 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><title>Prayogshala · Digital Logic Lab</title>
+<style>
+:root{--bg:#eef0f3;--pn:#fff;--bd:#cfd4da;--tx:#14181d;--mu:#5d6772;--ac:#0b64c0;--bb:#e6e3d8;--gap:#cfcbbc;--hole:#5b6370;--ic:#22272e;--ok:#157a3a;--er:#c0262d;--wa:#a35f00;color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0e1115;--pn:#161b22;--bd:#2a323c;--tx:#e6e9ed;--mu:#8a95a1;--ac:#4da3ff;--bb:#262b33;--gap:#14181d;--hole:#0a0c0f;--ic:#0b0d10;--ok:#3fb36b;--er:#ff6b6b;--wa:#e0a030;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#0e1115;--pn:#161b22;--bd:#2a323c;--tx:#e6e9ed;--mu:#8a95a1;--ac:#4da3ff;--bb:#262b33;--gap:#14181d;--hole:#0a0c0f;--ic:#0b0d10;--ok:#3fb36b;--er:#ff6b6b;--wa:#e0a030;color-scheme:dark}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;background:var(--bg);color:var(--tx);font:13px system-ui,Segoe UI,sans-serif}
+#app{display:grid;grid-template-columns:190px minmax(0,1fr) 280px;gap:8px;padding:8px}
+.p{background:var(--pn);border:1px solid var(--bd);border-radius:6px;padding:8px;min-width:0}
+header{grid-column:1/-1;display:flex;gap:6px;align-items:center;flex-wrap:wrap}header h1{font-size:15px;margin:0 8px 0 0}
+button{background:var(--pn);color:var(--tx);border:1px solid var(--bd);border-radius:4px;padding:4px 9px;font:inherit;cursor:pointer}button:hover{border-color:var(--ac)}
+#flash{color:var(--wa);margin-left:auto}h2{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--mu);margin:8px 0 4px}
+.lib{border:1px solid var(--bd);border-radius:4px;padding:5px 7px;margin:4px 0;cursor:grab;touch-action:none;user-select:none}.lib b{font-family:ui-monospace,monospace}.lib small,.dis{color:var(--mu);display:block}.dis{font-size:11px;margin:2px 0}
+#sc{overflow:auto;-webkit-overflow-scrolling:touch}svg{width:100%;height:auto;display:block;user-select:none}#bb{touch-action:pan-x pan-y}.tb{display:flex;gap:6px;align-items:center;margin-bottom:6px;flex-wrap:wrap}.lib.on{outline:2px solid var(--ac)}
+#bottom{grid-column:1/-1;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+table{border-collapse:collapse;width:100%}td,th{border:1px solid var(--bd);padding:2px 5px;text-align:center;font-family:ui-monospace,monospace;font-size:12px}
+ul{margin:0;padding-left:16px}.e{color:var(--er)}.w{color:var(--wa)}.i{color:var(--mu)}.ok{color:var(--ok)}
+#ghost{position:fixed;pointer-events:none;display:none;background:var(--ic);color:#fff;padding:4px 8px;border-radius:3px;font-family:ui-monospace,monospace;z-index:9}
+@media(max-width:900px){#app{grid-template-columns:minmax(0,1fr)}#bottom{grid-template-columns:1fr}.l #lib{display:flex;gap:6px;overflow-x:auto}.l .lib{flex:0 0 auto;margin:0;touch-action:pan-x}.l h2:not(:first-child),.l .dis{display:none}button{padding:8px 12px}}
+</style></head><body>
+<div id="app">
+<header class="p"><h1>Prayogshala <span style="font-weight:400;color:var(--mu);font-size:12px">Digital Logic Lab</span></h1><button id="un">Undo</button><button id="re">Redo</button><button id="rs">Reset circuit</button><button id="dl">Delete</button><button id="ml">◀</button><button id="mr">▶</button><button id="th">Theme</button><span id="flash"></span></header>
+<aside class="p l"><h2>IC library (drag onto board)</h2><div id="lib"></div><h2>Not yet implemented</h2><div class="dis">7474 · 7476 · 74138 · 74151 · 7483<br>(Phases 2–4)</div><h2>How to wire</h2><div class="dis">Drag from one terminal to another, or click two terminals. Click a wire or IC to select, then Delete. Hover a hole to probe its level.</div></aside>
+<main class="p"><div class="tb"><button id="zo">−</button><button id="zi">+</button><button id="zf">Fit</button><span id="pr" class="i">Tap a terminal to probe it</span></div><div id="sc"><svg id="bb" viewBox="0 0 1000 770"><g id="g0"></g><g id="g1"></g><g id="g2"></g></svg></div></main>
+<aside class="p" id="info"></aside>
+<section id="bottom"><div class="p"><h2>Truth table log</h2><button id="lg">Log row</button> <button id="lc">Clear</button><div id="tt"></div></div><div class="p"><h2>Logic analyser</h2><svg id="an" viewBox="0 0 480 130"></svg></div><div class="p"><h2>Errors &amp; status</h2><ul id="ms"></ul></div></section>
+</div><div id="ghost"></div>
+<script>
+// ===== Model: terminals, nets =====
+const $=s=>document.querySelector(s),cx=c=>50+c*30;
+const RY={a:230,b:252,c:274,d:296,e:318,f:362,g:384,h:406,i:428,j:450},RL={'t+':160,'t-':185,'b+':490,'b-':515};
+function pos(id){let m;if(id==='PSU+')return[40,50];if(id==='PSUG')return[100,50];if(m=id.match(/^P(\d)$/))return[m[1]*60-20,598];
+ if(m=id.match(/^SW(\d+)$/))return[190+m[1]*68,598];if(m=id.match(/^L(\d+)$/))return[190+m[1]*68,92];
+ if(m=id.match(/^R([tb][+-]):(\d+)$/))return[cx(+m[2]),RL[m[1]]];m=id.match(/^[TB](\d+)([a-j])$/);return[cx(+m[1]),RY[m[2]]]}
+function key(id){const m=id.match(/^([TB]\d+)[a-j]$/);return m?m[1]:id[0]==='R'?id.split(':')[0]:id}
+// ===== IC behaviour library (74-series pinouts, DIP-14) =====
+const DEF={},QG=[{in:[1,2],out:3},{in:[4,5],out:6},{in:[9,10],out:8},{in:[12,13],out:11}],
+NG=[{in:[2,3],out:1},{in:[5,6],out:4},{in:[8,9],out:10},{in:[11,12],out:13}],
+HG=[{in:[1],out:2},{in:[3],out:4},{in:[5],out:6},{in:[9],out:8},{in:[11],out:10},{in:[13],out:12}];
+[[7400,'nand','Quad 2-input NAND',QG],[7402,'nor','Quad 2-input NOR',NG],[7404,'not','Hex inverter',HG],[7408,'and','Quad 2-input AND',QG],[7432,'or','Quad 2-input OR',QG],[7486,'xor','Quad 2-input XOR',QG]]
+.forEach(([n,op,desc,gates])=>{const L={};gates.forEach((g,i)=>{g.in.forEach((p,j)=>L[p]=(i+1)+(op=='not'?'A':'AB'[j]));L[g.out]=(i+1)+'Y'});L[14]='VCC';L[7]='GND';DEF[n]={n,op,desc,gates,vcc:14,gnd:7,L}});
+const nt=v=>v==='X'?'X':1-v,AND=(a,b)=>a===0||b===0?0:a===1&&b===1?1:'X',OR=(a,b)=>a===1||b===1?1:a===0&&b===0?0:'X',XOR=(a,b)=>a==='X'||b==='X'?'X':a^b;
+const ev=(op,i)=>({and:()=>AND(...i),nand:()=>nt(AND(...i)),or:()=>OR(...i),nor:()=>nt(OR(...i)),xor:()=>XOR(...i),not:()=>nt(i[0])})[op]();
+const pinHole=(ic,p)=>p<=7?`B${ic.col+p-1}f`:`T${ic.col+14-p}e`;
+// ===== State =====
+let S={psu:false,p:[0,0],armed:null,sw:Array(12).fill(0),ics:[],wires:[],nid:1,sel:null,pending:null},U=[],R=[],mouse=[0,0],drag=null,dragW=false,samples=[],lastSig='',log=[],sim,probeTxt='Hover a terminal';
+const snap=()=>JSON.stringify({ics:S.ics,wires:S.wires,nid:S.nid});
+function save(){U.push(snap());if(U.length>100)U.shift();R=[]}
+const restore=j=>Object.assign(S,JSON.parse(j),{sel:null,pending:null});
+let ft;function flash(m){$('#flash').textContent=m;clearTimeout(ft);ft=setTimeout(()=>$('#flash').textContent='',4000)}
+// ===== Simulation engine (pure: state in, results out) =====
+function simulate(S){
+ const par={},f=x=>(par[x]===undefined||par[x]===x)?(par[x]=x):(par[x]=f(par[x])),N=id=>f(key(id));
+ S.wires.forEach(w=>{par[f(key(w.a))]=f(key(w.b))});
+ const src={},add=(n,v)=>(src[n]=src[n]||[]).push(v);add(N('PSUG'),0);
+ if(S.psu){add(N('PSU+'),1);S.sw.forEach((v,k)=>add(N('SW'+k),v));S.p.forEach((v,k)=>add(N('P'+(k+1)),v))}
+ const short=S.psu&&N('PSU+')===N('PSUG'),wired=new Set();S.wires.forEach(w=>{wired.add(N(w.a));wired.add(N(w.b))});
+ let vals={};const iv=n=>vals[n]===0||vals[n]===1?vals[n]:'X',pw={};
+ if(!short)for(let it=0;it<30;it++){const d={};for(const n in src)d[n]=[...src[n]];
+  S.ics.forEach(ic=>{const D=DEF[ic.type];pw[ic.id]=vals[N(pinHole(ic,D.vcc))]===1&&vals[N(pinHole(ic,D.gnd))]===0;
+   if(pw[ic.id])D.gates.forEach(g=>{(d[N(pinHole(ic,g.out))]=d[N(pinHole(ic,g.out))]||[]).push(ev(D.op,g.in.map(p=>iv(N(pinHole(ic,p))))))})});
+  const nv={};for(const n in d)nv[n]=d[n].every(x=>x===d[n][0])?d[n][0]:'C';
+  if(JSON.stringify(nv)===JSON.stringify(vals))break;vals=nv}
+ const msgs=[];if(!S.psu)msgs.push(['i','Trainer power is OFF.']);if(short)msgs.push(['e','SHORT CIRCUIT: +5V is connected to GND. Remove the offending wire. All ICs disabled.']);
+ const rep=S.ics.map((ic,ix)=>{const D=DEF[ic.type],lb=`IC${ix+1} (${D.n})`,vv=vals[N(pinHole(ic,D.vcc))],gv=vals[N(pinHole(ic,D.gnd))],on=!!pw[ic.id];
+  if(S.psu&&!short){if(vv!==1)msgs.push(['e',`${lb}: VCC (pin 14) is not at +5V, IC inactive.`]);if(gv!==0)msgs.push(['e',`${lb}: GND (pin 7) is not grounded, IC inactive.`])}
+  if(on){const fl=[],op=[];D.gates.forEach(g=>{g.in.forEach(p=>{if(iv(N(pinHole(ic,p)))==='X')fl.push(`${D.L[p]}(${p})`)});if(!wired.has(N(pinHole(ic,g.out))))op.push(`${D.L[g.out]}(${g.out})`)});
+   if(fl.length)msgs.push(['w',`${lb}: floating inputs (X): ${fl.join(', ')}`]);if(op.length)msgs.push(['i',`${lb}: outputs not connected: ${op.join(', ')}`])}
+  return{on}});
+ if(Object.values(vals).includes('C'))msgs.push(['e','Contention: two outputs/sources drive the same node with different levels.']);
+ return{vals,N,rep,short,msgs,leds:[...Array(12).keys()].map(k=>{const v=vals[N('L'+k)];return v===0||v===1?v:'X'}),uin:S.sw.map((_,k)=>k).filter(k=>wired.has(N('SW'+k))),uout:S.sw.map((_,k)=>k).filter(k=>wired.has(N('L'+k)))}}
+// ===== UI =====
+const svg=$('#bb'),g0=$('#g0'),g1=$('#g1'),g2=$('#g2');
+function pt(e){const p=svg.createSVGPoint();p.x=e.clientX;p.y=e.clientY;const q=p.matrixTransform(svg.getScreenCTM().inverse());return[q.x,q.y]}
+function buildStatic(){let s='<rect x="30" y="125" width="940" height="420" rx="8" fill="var(--bb)" stroke="var(--bd)"/><rect x="30" y="328" width="940" height="24" fill="var(--gap)"/>',h='';
+ s+='<rect x="10" y="22" width="125" height="93" rx="5" fill="none" stroke="var(--bd)"/><rect x="145" y="22" width="850" height="93" rx="5" fill="none" stroke="var(--bd)"/><rect x="10" y="565" width="125" height="185" rx="5" fill="none" stroke="var(--bd)"/><rect x="145" y="565" width="850" height="185" rx="5" fill="none" stroke="var(--bd)"/>';
+ s+='<g fill="var(--mu)" font-size="10"><text x="12" y="14">POWER SUPPLY</text><text x="147" y="14">LOGIC OUTPUTS</text><text x="12" y="559">PULSER SWITCH</text><text x="147" y="559">LOGIC INPUTS</text><text x="28" y="38">+5V</text><text x="88" y="38">GND</text><text x="32" y="676">P1</text><text x="92" y="676">P2</text><text x="12" y="764" font-size="8">Pulse generator: Phase 4</text></g>';
+ for(let k=0;k<12;k++){const x=190+k*68;s+=`<text x="${x}" y="38" text-anchor="middle" font-size="10" fill="var(--mu)">D${k+1}</text><text x="${x}" y="584" text-anchor="middle" font-size="10" fill="var(--mu)">D${k+1}</text>`;h+=`<circle data-t="SW${k}" cx="${x}" cy="598" r="10"/><circle data-t="L${k}" cx="${x}" cy="92" r="10"/>`;
+  s+=`<circle cx="${x}" cy="598" r="5" fill="#2563eb"/><circle cx="${x}" cy="92" r="5" fill="#9ca3af"/>`}
+ s+='<circle cx="40" cy="50" r="5" fill="#dc2626"/><circle cx="100" cy="50" r="5" fill="#111"/><circle cx="40" cy="598" r="5" fill="#2563eb"/><circle cx="100" cy="598" r="5" fill="#2563eb"/>';h+='<circle data-t="PSU+" cx="40" cy="50" r="10"/><circle data-t="PSUG" cx="100" cy="50" r="10"/><circle data-t="P1" cx="40" cy="598" r="10"/><circle data-t="P2" cx="100" cy="598" r="10"/>';
+ for(const r in RL){for(let c=0;c<30;c++){s+=`<circle cx="${cx(c)}" cy="${RL[r]}" r="4" fill="var(--hole)"/>`;h+=`<circle data-t="R${r}:${c}" cx="${cx(c)}" cy="${RL[r]}" r="9"/>`}
+  s+=`<text x="36" y="${RL[r]+4}" font-size="12" font-weight="700" fill="${r[1]=='+'?'#dc2626':'var(--mu)'}">${r[1]=='+'?'+':'−'}</text>`}
+ for(const rw in RY){s+=`<text x="38" y="${RY[rw]+4}" font-size="9" fill="var(--mu)">${rw}</text>`;for(let c=0;c<30;c++){s+=`<circle cx="${cx(c)}" cy="${RY[rw]}" r="4" fill="var(--hole)"/>`;h+=`<circle data-t="${rw<'f'?'T':'B'}${c}${rw}" cx="${cx(c)}" cy="${RY[rw]}" r="8"/>`;if(rw=='a'||rw=='j')s+=`<text x="${cx(c)}" y="${rw=='a'?218:468}" font-size="8" text-anchor="middle" fill="var(--mu)">${c+1}</text>`}}
+ g0.innerHTML=s;g2.innerHTML=`<g fill="transparent" style="cursor:crosshair">${h}</g>`}
+const PAL=['#2563eb','#16a34a','#d97706','#9333ea','#0891b2','#db2777'];
+const wcol=(a,b)=>{const t=[a,b];return t.some(x=>x==='PSU+'||/^R[tb]\+/.test(x))?'#dc2626':t.some(x=>x==='PSUG'||/^R[tb]-/.test(x))?'#1f2937':PAL[S.nid%PAL.length]};
+function occ(){const o=new Set();S.ics.forEach(ic=>{for(let p=1;p<=14;p++)o.add(pinHole(ic,p))});return o}
+function addWire(a,b){if(a===b)return;if(S.wires.some(w=>(w.a===a&&w.b===b)||(w.a===b&&w.b===a)))return flash('Wire already exists');const o=occ();if(o.has(a)||o.has(b))return flash('That hole is occupied by an IC pin; use another hole in the same column strip');save();S.wires.push({id:S.nid++,a,b,color:wcol(a,b)})}
+function canPlace(col,id){if(col<0||col>23)return flash('IC must fit fully on the breadboard'),0;if(S.ics.some(o=>o.id!==id&&Math.abs(o.col-col)<7))return flash('IC overlaps another IC'),0;
+ const hs=new Set();for(let p=1;p<=14;p++)hs.add(pinHole({col},p));if(S.wires.some(w=>hs.has(w.a)||hs.has(w.b)))return flash('Remove wires from those holes first'),0;return 1}
+function draw(){sim=simulate(S);let s='';
+ S.ics.forEach((ic,ix)=>{const D=DEF[ic.type],x0=cx(ic.col)-14,x1=cx(ic.col+6)+14,sel=S.sel&&S.sel.t=='ic'&&S.sel.id==ic.id,on=sim.rep[ix].on;
+  s+=`<rect data-ic="${ic.id}" x="${x0}" y="324" width="${x1-x0}" height="32" rx="3" fill="var(--ic)" stroke="${sel?'var(--ac)':'#555'}" stroke-width="${sel?2.5:1}" style="cursor:grab"/><circle cx="${x0}" cy="340" r="6" fill="var(--gap)" pointer-events="none"/><g pointer-events="none"><circle cx="${x0+9}" cy="351" r="2" fill="#fff"/><circle cx="${x1-8}" cy="332" r="3" fill="${on?'#22c55e':'#ef4444'}"/><text x="${(x0+x1)/2}" y="344" text-anchor="middle" font-size="9" font-weight="700" fill="#e5e7eb" font-family="monospace">${ic.type}</text>`;
+  for(let p=1;p<=14;p++){const[x,y]=pinHole(ic,p)[0]=='B'?[cx(ic.col+p-1),362]:[cx(ic.col+14-p),318];s+=`<rect x="${x-3}" y="${p<=7?354:318}" width="6" height="8" fill="#b8bcc2"/><text x="${x}" y="${p<=7?352:334}" font-size="7" text-anchor="middle" fill="#9aa4af">${D.L[p]}</text>`}s+='</g>'});
+ S.wires.forEach(w=>{const a=pos(w.a),b=pos(w.b),len=Math.hypot(a[0]-b[0],a[1]-b[1]),d=`M${a[0]},${a[1]} Q${(a[0]+b[0])/2},${Math.min(a[1],b[1])-12-len*.06} ${b[0]},${b[1]}`,sel=S.sel&&S.sel.t=='w'&&S.sel.id==w.id;
+  s+=(sel?`<path d="${d}" fill="none" stroke="var(--ac)" stroke-width="9" opacity=".5" pointer-events="none"/>`:'')+`<path d="${d}" fill="none" stroke="${w.color}" stroke-width="5" stroke-linecap="round" pointer-events="none"/><path data-w="${w.id}" d="${d}" fill="none" stroke="transparent" stroke-width="16" style="cursor:pointer"/><circle cx="${a[0]}" cy="${a[1]}" r="4" fill="${w.color}" pointer-events="none"/><circle cx="${b[0]}" cy="${b[1]}" r="4" fill="${w.color}" pointer-events="none"/>`});
+ if(S.pending){const a=pos(S.pending);s+=`<line x1="${a[0]}" y1="${a[1]}" x2="${mouse[0]}" y2="${mouse[1]}" stroke="var(--ac)" stroke-dasharray="4" stroke-width="3" pointer-events="none"/>`}
+ s+=`<g data-psu="1" style="cursor:pointer"><rect data-psu="1" x="25" y="64" width="70" height="30" rx="4" fill="var(--bd)"/><rect data-psu="1" x="${S.psu?65:27}" y="66" width="28" height="26" rx="3" fill="${S.psu?'#16a34a':'#6b7280'}"/><text data-psu="1" x="60" y="108" text-anchor="middle" font-size="11" fill="var(--tx)">${S.psu?'ON':'OFF'}</text></g><circle cx="112" cy="79" r="4" fill="${S.psu&&!sim.short?'#22c55e':'#6b7280'}"/>`;
+ for(let k=0;k<12;k++){const x=190+k*68,on=S.sw[k];s+=`<g style="cursor:pointer"><rect data-sw="${k}" x="${x-14}" y="648" width="28" height="64" rx="5" fill="var(--bd)"/><rect data-sw="${k}" x="${x-11}" y="${on?651:679}" width="22" height="30" rx="4" fill="${on?'#2563eb':'#6b7280'}"/></g><text x="${x}" y="732" text-anchor="middle" font-size="11" fill="var(--tx)">${on?'1':'0'}</text><circle cx="${x}" cy="624" r="10" fill="${on&&S.psu&&!sim.short?'#ef4444':'#374151'}" stroke="var(--bd)"/>`;
+  const lv=sim.leds[k];s+=`<circle cx="${x}" cy="58" r="12" fill="${lv===1?'#ef4444':'#374151'}" stroke="var(--bd)"/><text x="${x}" y="80" text-anchor="middle" font-size="9" fill="var(--mu)">${lv}</text>`}
+ for(let k=0;k<2;k++){s+=`<circle data-p="${k}" cx="${40+k*60}" cy="640" r="17" fill="${S.p[k]?'#2563eb':'#6b7280'}" stroke="var(--bd)" stroke-width="3" style="cursor:pointer"/>`}g1.innerHTML=s;
+ const sig=S.sw.join('')+sim.leds.join('')+S.psu;if(sig!==lastSig){lastSig=sig;samples.push({sw:[...S.sw],led:[...sim.leds]});if(samples.length>40)samples.shift()}
+ renderPanels()}
+const lv=v=>v===1?'HIGH (1)':v===0?'LOW (0)':v==='C'?'CONTENTION':'Floating (X)';
+function renderPanels(){const ic=S.sel&&S.sel.t=='ic'&&S.ics.find(i=>i.id==S.sel.id);let h='<h2>Selected component</h2>';
+ if(ic){const D=DEF[ic.type],ix=S.ics.indexOf(ic);h+=`<b>${D.n}</b> ${D.desc}<br><span class="${sim.rep[ix].on?'ok':'e'}">${sim.rep[ix].on?'Powered, operating':'No power, inactive'}</span><h2>Pin configuration (notch up)</h2><table><tr><th colspan="4">⌒ notch</th></tr>`;
+  for(let i=1;i<=7;i++)h+=`<tr><td>${i}</td><td>${D.L[i]}</td><td>${D.L[15-i]}</td><td>${15-i}</td></tr>`;h+='</table><h2>Truth table</h2><table>';
+  const two=D.op!='not',rows=two?[[0,0],[0,1],[1,0],[1,1]]:[[0],[1]];h+=`<tr><th>A</th>${two?'<th>B</th>':''}<th>Y</th></tr>`+rows.map(r=>`<tr><td>${r.join('</td><td>')}</td><td>${ev(D.op,r)}</td></tr>`).join('')+'</table>'}
+ else h+='<span class="i">Click an IC on the board to see its datasheet-style pinout and truth table.</span>';
+ h+=`<h2>Connection status</h2>Supply: <b class="${S.psu&&!sim.short?'ok':'e'}">${sim.short?'SHORT':S.psu?'ON, +5V':'OFF'}</b><br>ICs: ${S.ics.length} · Wires: ${S.wires.length}
+ <h2>Guide: verify an AND gate</h2><details><summary>Show steps</summary><ol style="padding-left:16px;margin:4px 0"><li>Drag a 7408 onto the board (notch left, pin 1 bottom-left).</li><li>+5V terminal to the + rail (red); GND to the − rail (black). The IC needs both to run.</li><li>Rail + to pin 14 (VCC), rail − to pin 7 (GND).</li><li>Bottom panel: terminal above Input D1 to pin 1 (1A), D2 to pin 2 (1B). Pins 1–7 sit on the lower row, 8–14 on the upper row.</li><li>Pin 3 (1Y) to the terminal under Output D1 (top panel). Switch the supply ON.</li><li>Flip toggles up (1) or down (0); the LED above each toggle shows its level. Press Log row for each combination.</li></ol></details>`;
+ $('#info').innerHTML=h;
+ $('#tt').innerHTML=sim.uin.length+sim.uout.length?`<table><tr>${sim.uin.map(k=>`<th>In D${k+1}</th>`).join('')}${sim.uout.map(k=>`<th>Out D${k+1}</th>`).join('')}</tr>${log.map(r=>`<tr>${sim.uin.map(k=>`<td>${r.sw[k]}</td>`).join('')}${sim.uout.map(k=>`<td>${r.led[k]}</td>`).join('')}</tr>`).join('')}</table>`:'<span class="i">Wire inputs/outputs to log them.</span>';
+ $('#ms').innerHTML=(sim.msgs.length?sim.msgs:[['ok','No faults detected.']]).map(m=>`<li class="${m[0]}">${m[1]}</li>`).join('');
+ const chs=[...sim.uin.map(k=>['In D'+(k+1),0,k]),...sim.uout.map(k=>['Out D'+(k+1),1,k])];let a='',n=samples.length,dx=n>1?460/(n-1):0;chs.forEach(([nm,o,k],ch)=>{const y0=ch*16+14;a+=`<text x="0" y="${y0}" font-size="8" fill="var(--mu)">${nm}</text><polyline fill="none" stroke="${o?'#ef4444':'#2563eb'}" stroke-width="1.5" points="${samples.map((sm,i)=>{const v=o?sm.led[k]:sm.sw[k];return`${34+i*dx*.93},${v===1?y0-9:v===0?y0:y0-4.5}`}).join(' ')}"/>`});$('#an').setAttribute('viewBox',`0 0 480 ${Math.max(60,chs.length*16+10)}`);$('#an').innerHTML=a}
+// ===== Interaction =====
+function probe(t){const v=sim.vals[sim.N(t)];$('#pr').textContent=`${t.replace(/^SW(\d+)$/,(a,n)=>'Input D'+(+n+1)).replace(/^L(\d+)$/,(a,n)=>'Output D'+(+n+1))} → ${lv(v)}`}
+function showLib(){document.querySelectorAll('.lib').forEach(d=>d.classList.toggle('on',d.dataset.ty==S.armed))}
+svg.addEventListener('pointerdown',e=>{const d=e.target.dataset;mouse=pt(e);if(S.armed&&mouse[1]>215&&mouse[1]<470){const col=Math.round((mouse[0]-50)/30-3);if(canPlace(col)){save();const id=S.nid++;S.ics.push({id,type:S.armed,col});S.sel={t:'ic',id}}S.armed=null;showLib();draw();return}if(d.p!==undefined){S.p[d.p]=1;draw();return}
+ if(d.t){probe(d.t);if(S.pending&&S.pending!==d.t){addWire(S.pending,d.t);S.pending=null}else{S.pending=d.t;dragW=true}}
+ else if(d.sw!==undefined)S.sw[d.sw]^=1;else if(d.psu!==undefined)S.psu=!S.psu;
+ else if(d.ic){S.sel={t:'ic',id:+d.ic};if(e.pointerType==='mouse'){drag={k:'move',id:+d.ic};ghost(e,S.ics.find(i=>i.id==d.ic).type)}}
+ else if(d.w)S.sel={t:'w',id:+d.w};else{S.sel=null;S.pending=null}draw()});
+function ghost(e,t){const g=$('#ghost');g.textContent=t;g.style.display='block';g.style.left=e.clientX+8+'px';g.style.top=e.clientY+8+'px'}
+addEventListener('pointermove',e=>{if(drag)ghost(e,$('#ghost').textContent);if(!svg.contains(e.target)&&!dragW)return;mouse=pt(e);const t=e.target.dataset&&e.target.dataset.t;
+ if(t)probe(t);if(S.pending)draw()});
+addEventListener('pointerup',e=>{if(S.p[0]||S.p[1]){S.p=[0,0];draw()}if(dragW){dragW=false;const t=document.elementFromPoint(e.clientX,e.clientY),id=t&&t.dataset.t;if(id&&S.pending&&id!==S.pending){addWire(S.pending,id);S.pending=null}else if(id!==S.pending&&e.pointerType==='mouse')S.pending=null;draw()}
+ if(drag){$('#ghost').style.display='none';const r=svg.getBoundingClientRect(),p=pt(e);
+  if(e.clientX>=r.left&&e.clientX<=r.right&&e.clientY>=r.top&&e.clientY<=r.bottom&&p[1]>215&&p[1]<470){const col=Math.round((p[0]-50)/30-3);
+   if(drag.k=='new'){if(canPlace(col)){save();const id=S.nid++;S.ics.push({id,type:drag.type,col});S.sel={t:'ic',id}}}
+   else if(canPlace(col,drag.id)){const ic=S.ics.find(i=>i.id==drag.id);if(ic.col!==col){save();ic.col=col}}}
+  drag=null;draw()}});
+const lib=$('#lib');Object.values(DEF).forEach(D=>{const d=document.createElement('div');d.className='lib';d.innerHTML=`<b>${D.n}</b><small>${D.desc}</small>`;d.dataset.ty=D.n;d.onpointerdown=e=>{if(e.pointerType==='mouse'){e.preventDefault();drag={k:'new',type:D.n};ghost(e,D.n)}};d.onclick=()=>{S.armed=S.armed===D.n?null:D.n;showLib();flash(S.armed?'Tap the breadboard to place '+D.n:'')};lib.appendChild(d)});
+function del(){if(!S.sel)return;save();if(S.sel.t=='ic')S.ics=S.ics.filter(i=>i.id!=S.sel.id);else S.wires=S.wires.filter(w=>w.id!=S.sel.id);S.sel=null;draw()}
+$('#dl').onclick=del;$('#un').onclick=()=>{if(U.length){R.push(snap());restore(U.pop());draw()}};$('#re').onclick=()=>{if(R.length){U.push(snap());restore(R.pop());draw()}};
+$('#rs').onclick=()=>{save();S.ics=[];S.wires=[];S.sel=S.pending=null;draw()};
+$('#lg').onclick=()=>{log.push({sw:[...S.sw],led:[...sim.leds]});draw()};$('#lc').onclick=()=>{log=[];draw()};
+$('#th').onclick=()=>{const r=document.documentElement,d=r.dataset.theme?r.dataset.theme=='dark':matchMedia('(prefers-color-scheme:dark)').matches;r.dataset.theme=d?'light':'dark'};
+addEventListener('keydown',e=>{if(e.key=='Delete'||e.key=='Backspace')del();if(e.key=='Escape'){S.pending=null;draw()}if((e.ctrlKey||e.metaKey)&&e.key=='z'){e.preventDefault();$('#un').click()}if((e.ctrlKey||e.metaKey)&&e.key=='y'){e.preventDefault();$('#re').click()}});
+function nudge(d){const s=S.sel;if(!s||s.t!=='ic')return flash('Select an IC first');const ic=S.ics.find(i=>i.id==s.id);if(canPlace(ic.col+d,ic.id)){save();ic.col+=d;draw()}}
+$('#ml').onclick=()=>nudge(-1);$('#mr').onclick=()=>nudge(1);
+let zw=0;function zoom(w){zw=w;svg.style.width=w?w+'px':'100%'}
+$('#zi').onclick=()=>zoom(Math.min(2400,(zw||svg.clientWidth)*1.25));$('#zo').onclick=()=>zoom(Math.max(500,(zw||svg.clientWidth)/1.25));$('#zf').onclick=()=>zoom(0);
+if(innerWidth<700)zoom(1000);
+buildStatic();draw();
+</script></body></html>
